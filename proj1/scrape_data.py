@@ -1,6 +1,11 @@
+############################################################
+### Authors: Matej Melchiory, David Navrátil
+### Date: 29.9.2026
+### Description: Scraping product URLs from simpletire.com
+############################################################
+
 import sys
 import time
-import re
 import requests
 from bs4 import BeautifulSoup
 
@@ -22,7 +27,50 @@ def scrape_product(url):
         print(f"Request failed for {url}: {e}", file=sys.stderr)
         return None
 
-    # TODO
+    """ Save HTML for inspection
+        with open("product.html", "w", encoding="utf-8") as file:
+            file.write(resp.text)
+    """
+
+    # Parse HTML
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    # Find product name
+    # If product sites are consistent - name = soup.find("h1").get_text(strip=True)
+    name_tag = soup.find("h1")
+
+    if name_tag:
+        name = name_tag.get_text(strip=True)
+    else:
+        name = ""
+
+    # Find the tire size from the URL
+    tire_size = url.split("tireSize=")[1].split("&")[0]
+
+    # Find the matching tire size block and its price
+    price = ""
+
+    for li in soup.find_all("li", attrs={"data-component": "TireSize"}):
+        link = li.find("a", attrs={"data-component": "BaseLinkInner"})
+
+        if link and tire_size in link.get("href", ""):
+            price_tag = li.find(
+                "p",
+                attrs={"data-component": "TireSizePrice"}
+            )
+
+            if price_tag:
+                price = price_tag.get_text(strip=True)
+
+            break
+
+    row = [
+        url,
+        name,
+        price
+    ]
+
+    return row
 
 def main():
     for line in sys.stdin:

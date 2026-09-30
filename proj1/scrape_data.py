@@ -1,7 +1,7 @@
 ############################################################
-### Authors: Matej Melchiory, David Navrátil
+### Authors: David Navrátil, Matej Melchiory
 ### Date: 29.9.2026
-### Description: Scraping product URLs from simpletire.com
+### Description: Scraping product data from simpletire.com
 ############################################################
 
 import sys
@@ -18,6 +18,7 @@ HEADERS = {
 }
 
 def scrape_product(url):
+    # Download the product page
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)
         if resp.status_code != 200:
@@ -32,7 +33,7 @@ def scrape_product(url):
             file.write(resp.text)
     """
 
-    # Parse HTML
+    # Parse the downloaded HTML
     soup = BeautifulSoup(resp.text, "lxml")
 
     # Find product name
@@ -44,44 +45,81 @@ def scrape_product(url):
     else:
         name = ""
 
-    # Find the tire size from the URL
+    # Get the tire size from the product URL
     tire_size = url.split("tireSize=")[1].split("&")[0]
 
-    # Find the matching tire size block and its price
+    # Initialize product values
     price = ""
+    width = ""
+    ratio = ""
+    inflation_pressure = ""
+    tread_depth = ""
+    sidewall = ""
 
+    # Find the tire size block matching the URL
     for li in soup.find_all("li", attrs={"data-component": "TireSize"}):
         link = li.find("a", attrs={"data-component": "BaseLinkInner"})
 
         if link and tire_size in link.get("href", ""):
-            price_tag = li.find(
-                "p",
-                attrs={"data-component": "TireSizePrice"}
-            )
+            # Find the price for this tire size
+            price_tag = li.find("p", attrs={"data-component": "TireSizePrice"})
 
             if price_tag:
                 price = price_tag.get_text(strip=True)
 
+            # Find technical specifications for this tire size
+            specs = li.find("table", {"data-component": "TireSizeSpecs"})
+
+            if specs:
+                for spec in specs.find_all("tr", {"data-component": "TireSizeSpec"}):
+                    label = spec.find("th").get_text(strip=True)
+                    value = spec.find("td").get_text(strip=True)
+
+                    if label == "Width":
+                        width = value
+                    elif label == "Ratio":
+                        ratio = value
+                    elif label == "Inflation Pressure":
+                        inflation_pressure = value
+                    elif label == "Tread Depth":
+                        tread_depth = value
+                    elif label == "Sidewall":
+                        sidewall = value
+
             break
 
+    specs = li.find("table", {"data-component": "TireSizeSpecs"})
+
+    # Create one TSV row
     row = [
         url,
         name,
-        price
+        price,
+        width,
+        ratio,
+        inflation_pressure,
+        tread_depth,
+        sidewall
     ]
 
     return row
 
 def main():
+    # Read product URLs from standard input
     for line in sys.stdin:
         url = line.strip()
+
         if not url:
             continue
 
+        # Scrape data for the current product
         row = scrape_product(url)
+
+        # Print the result as a TSV row
         if row:
             print("\t".join(row))
-        
+
+        # Wait before requesting the next product
         time.sleep(DELAY)
 
 if __name__ == "__main__":

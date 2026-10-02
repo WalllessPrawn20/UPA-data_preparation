@@ -4,6 +4,8 @@
 ### Description: Scraping product data from simpletire.com
 ############################################################
 
+#!/usr/bin/env python3
+
 import sys
 import time
 import requests

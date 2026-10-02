@@ -1,0 +1,33 @@
+# Projekt 1 - UPA: Získavanie dát z webových stránok
+
+## Autori
+- **Názov tímu:** Extract-U-Later
+- **Členovia:**
+  - David Navrátil (xnavrad01)
+  - Matej Melchiory (xmelchm00)
+
+## Zvolený e-shop
+- **Názov:** SimpleTire
+- **URL:** https://simpletire.com/
+- **Popis:** Americký online predajca zameraný na predaj a distribúciu pneumatík pre rôzne typy vozidiel. Prepája zákazníkov so sieťou nezávislých dodávateľov po celých Štátoch Amerických.
+
+## Význam stĺpcov vo výstupe data.tsv
+Výsledný súbor neobsahuje záhlavie. Každý riadok reprezentuje jeden produkt a obsahuje 8 stĺpcov oddelených tabulátorom:
+
+1. **URL** – Priamy odkaz na konkrétnu veľkosť a variant pneumatiky.
+2. **Názov produktu** – Úplný názov modelu pneumatiky (extrahovaný zo značky `<h1>`).
+3. **Cena** – Aktuálna predajná cena pneumatiky vrátane meny (napr. `$273.80`).*(číselný atribút)*
+4. **Šírka (Width)** – Šírka pneumatiky v milimetroch, prípadne s označením kategórie vozidla (napr. `255`, `LT285`). *(číselný / kombinovaný atribút)*
+5. **Profilové číslo a konštrukcia (Ratio)** – Profilové číslo pneumatiky spojené s typom radiálnej konštrukcie kostry (napr. `70R`, `45ZR`, `12.50R`). *(kategorický / kombinovaný atribút)*
+6. **Maximálny tlak (Inflation Pressure)** – Maximálny povolený tlak hustenia uvedený ako číselná hodnota v PSI (napr. `44`, `51`, `80`). *(číselný atribút)*
+7. **Hĺbka dezénu (Tread Depth)** – Počiatočná hĺbka dezénu uvedená ako číselná hodnota (napr. `12.00`, `14.00`). *(číselný atribút)*
+8. **Vyhotovenie bočnice (Sidewall)** – Typ/farba bočnice pneumatiky (napr. `Blackwall`). *(kategorický atribút)*
+
+## Opatrenia vyplývajúce z robots.txt
+- **Rešpektovanie direktív Disallow:** Pre všeobecných agentov (`User-agent: *`) súbor zakazuje prístup do `/catalog` a `/error`, pričom ostatné pravidlá zakazujú `/search` a interné API (`/api/*`, `/_next/data/`). Skript tieto sekcie vôbec nenavštevuje a obmedzuje sa výhradne na povolenú verejnú časť katalógu značiek a modelov (`/brands/*`).
+- **Crawl-delay a ohľaduplnosť:** Aj keď súbor `robots.txt` explicitne nedefinuje direktívu `Crawl-delay`, implementovali sme umelé oneskorenie 1 sekunda (`DELAY = 1`) medzi jednotlivými HTTP požiadavkami, aby nedochádzalo k preťažovaniu servera e-shopu.
+- **Identifikácia robota:** Každá požiadavka obsahuje štandardnú HTTP hlavičku `User-Agent`.
+
+## Poznámky k implementácii
+- Na spustenie sa vyžaduje Python 3 a virtuálne prostredie `venv`, ktoré inicializuje skript `build.sh`.
+- Na parsovanie HTML kódu sa využíva knižnica `BeautifulSoup4` s parserom `lxml`.

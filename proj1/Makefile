@@ -5,7 +5,9 @@ FILES =	build.sh \
         scrape_data.py \
         scrape_url.py \
         urls.txt \
-        data.tsv
+        data.tsv \
+        README \
+        requirements.txt \
 
 .PHONY: all zip clean
 

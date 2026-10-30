@@ -8,6 +8,7 @@
 
 import sys
 import time
+import random
 import requests
 import re
 import urllib.parse
@@ -17,6 +18,10 @@ from bs4 import BeautifulSoup
 URL = "https://simpletire.com/"
 # Delay between requests to avoid overwhelming the server
 DELAY = 1
+# Maximum number of product URLs taken from one brand
+MAX_PER_BRAND = 30
+# Total number of product URLs we want
+TOTAL = 150
 # Our own headers
 HEADERS = {
     "User-Agent":   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) "
@@ -28,21 +33,33 @@ response = requests.get(URL, headers=HEADERS, timeout=10)
 html = response.text
 
 # Finding all model links using regex
-model_links = set(re.findall(r'https://simpletire\.com/brands/[a-z0-9-]+-tires/[a-z0-9-]+', html))
+model_links = list(set(re.findall(r'https://simpletire\.com/brands/[a-z0-9-]+-tires/[a-z0-9-]+', html)))
+# Different models are processed on every run
+random.shuffle(model_links)
 
 product_urls = []
+seen = set()
+# Number of product URLs already taken per brand
+brand_counts = {}
 
 # Going through all model links found and scraping the product URLs
 for model_url in model_links:
 
-    # Stopping at 150 product URLs
-    if len(product_urls) >= 150:
+    # Stopping at the required number of product URLs
+    if len(product_urls) >= TOTAL:
         break
+
+    # Brand is part of the URL: /brands/<brand>-tires/<model>
+    brand = model_url.split("/brands/")[1].split("/")[0]
+
+    # Skipping models of brands that already have enough products (no request needed)
+    if brand_counts.get(brand, 0) >= MAX_PER_BRAND:
+        continue
 
     # Getting a response from current model URL
     resp = requests.get(model_url, headers=HEADERS, timeout=10)
 
-    # Dellay to avoid overwhelming the server
+    # Delay to avoid overwhelming the server
     time.sleep(DELAY)
 
     # Checking if the response is successful
@@ -55,7 +72,8 @@ for model_url in model_links:
     # Every tire has a variety of sizes, so we can find the product URLs by looking at all possible sizes
     size_items = model_soup.find_all("li", attrs={"data-component": "TireSize"})
 
-    # Going through all size items found and extracting the product URLs
+    # Collecting the product URLs of this model
+    model_product_urls = []
     for li in size_items:
         link = li.find("a", attrs={"data-component": "BaseLinkInner"})
         if link is None:
@@ -63,11 +81,19 @@ for model_url in model_links:
         href = link.get("href")
         if href:
             full_url = urllib.parse.urljoin(model_url, href)
-            product_urls.append(full_url)
+            if full_url not in seen:
+                seen.add(full_url)
+                model_product_urls.append(full_url)
 
-    print(f"{model_url}: found {len(size_items)} sizes (total so far: {len(product_urls)})", file=sys.stderr)
+    # Taking a random sample so the sizes are spread across all rims, not just the smallest ones
+    free_slots = MAX_PER_BRAND - brand_counts.get(brand, 0)
+    chosen = random.sample(model_product_urls, min(free_slots, len(model_product_urls)))
+    product_urls.extend(chosen)
+    brand_counts[brand] = brand_counts.get(brand, 0) + len(chosen)
 
-# Printing all product URLs found, limited to 150
-for url in product_urls[:150]:
+    print(f"{model_url}: found {len(size_items)} sizes, took {len(chosen)} "
+          f"(brand {brand}: {brand_counts[brand]}, total so far: {len(product_urls)})", file=sys.stderr)
+
+# Printing all product URLs found, limited to TOTAL
+for url in product_urls[:TOTAL]:
     print(url)
-

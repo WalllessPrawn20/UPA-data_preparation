@@ -12,8 +12,8 @@ import seaborn as sns
 import sklearn
 
 # Paths setup and importing dataset from data.tsv
-DATA_PATH = Path("proj2/data.tsv")
-OUTPUT_DIR = Path("proj2/vystupy")
+DATA_PATH = Path("data.tsv")
+OUTPUT_DIR = Path("vystupy")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 REPORT_PATH = OUTPUT_DIR / "analyza.txt"
 
